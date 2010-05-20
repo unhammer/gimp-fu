@@ -1,1 +1,1 @@
-Just some simple scripts made using http://github.com/pft/gimpmode 
+Just some simple scripts made using [http://github.com/pft/gimpmode](gimpmode) 
