@@ -105,10 +105,10 @@ sidan me skriv det ut."
 			  1		; optimaliser
 			  0		; progressiv
 			  "Created with GIMP by ~T~"
-			  0		; subsmp
+			  3		; subsmp, 3 is best quality (?)
 			  1		; force baseline
 			  0		; restart markers
-			  0		; dct
+			  0		; dct slow
 			  ))
 
         (gimp-image-delete image))
