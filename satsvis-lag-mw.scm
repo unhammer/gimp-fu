@@ -66,7 +66,6 @@ sidan me skriv det ut."
   (let* ((filelist (cadr (file-glob fpattern 1))))
     (while (not (null? filelist))
       (let* ((filename (car filelist))
-             (xcfname (string-append filename ".xcf"))
              (image (car (gimp-file-load RUN-NONINTERACTIVE
                                          filename filename)))
              (drawable (car (gimp-image-get-active-layer image))))
@@ -82,14 +81,26 @@ sidan me skriv det ut."
 	(make-wonderful image drawable
 			blurfactor brightness contrast
 			FALSE)		; ikkje noko flatten
-
         (set! drawable (car (gimp-image-get-active-layer image)))
-	(gimp-message (string-append "Lagrar som " xcfname " ..."))
-        (gimp-xcf-save RUN-NONINTERACTIVE
-                       image
-                       drawable
-                       xcfname
-                       xcfname)
+	(gimp-layer-set-opacity drawable 10) ; vedunderleg-laget til 10%
+
+	(let ((xcfname (string-append filename ".xcf"))
+	      (jpgname (string-append filename ".xcf.jpg")))
+	  (gimp-message (string-append "Lagrar som " xcfname " ..."))
+	  (gimp-xcf-save RUN-NONINTERACTIVE
+			 image
+			 drawable
+			 xcfname
+			 xcfname)
+	  (gimp-message (string-append "Lagrar som " jpgname " ..."))
+	  (gimp-xcf-save RUN-NONINTERACTIVE
+			 image
+			 drawable
+			 jpgname
+			 jpgname))
+
         (gimp-image-delete image))
-      (set! filelist (cdr filelist)))))
+      (set! filelist (cdr filelist))))
+  
+  (gimp-message "Ferdig med alle bilete!"))
 
