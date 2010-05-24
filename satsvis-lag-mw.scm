@@ -84,20 +84,32 @@ sidan me skriv det ut."
         (set! drawable (car (gimp-image-get-active-layer image)))
 	(gimp-layer-set-opacity drawable 10) ; vedunderleg-laget til 10%
 
-	(let ((xcfname (string-append filename ".xcf"))
-	      (jpgname (string-append filename ".xcf.jpg")))
+	(let ((xcfname (string-append (basename filename) ".xcf"))
+	      (jpgname (string-append (basename filename) ".xcf.jpg")))
 	  (gimp-message (string-append "Lagrar som " xcfname " ..."))
 	  (gimp-xcf-save RUN-NONINTERACTIVE
 			 image
 			 drawable
 			 xcfname
 			 xcfname)
+	  (gimp-image-flatten image)
+	  (set! drawable (car (gimp-image-get-active-layer image)))
 	  (gimp-message (string-append "Lagrar som " jpgname " ..."))
-	  (gimp-xcf-save RUN-NONINTERACTIVE
-			 image
-			 drawable
-			 jpgname
-			 jpgname))
+	  (file-jpeg-save RUN-NONINTERACTIVE
+			  image
+			  drawable
+			  jpgname
+			  jpgname
+			  1		; kvalitet
+			  0		; utjamning
+			  1		; optimaliser
+			  0		; progressiv
+			  "Created with GIMP by ~T~"
+			  0		; subsmp
+			  1		; force baseline
+			  0		; restart markers
+			  0		; dct
+			  ))
 
         (gimp-image-delete image))
       (set! filelist (cdr filelist))))
