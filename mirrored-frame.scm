@@ -12,6 +12,9 @@
 
 ;;; TODO: test using Resynthesize instead of plain mirroring.
 
+;;; TODO: crop after first resize, to make the second mirror faster,
+;;;       crop after second resize, to make the file smaller
+
 ; License:
 ;
 ; This program is free software; you can redistribute it and/or modify
