@@ -17,7 +17,7 @@
    image
    drawable)
 
-  (gimp-undo-push-group-start image)
+  (gimp-image-undo-group-start image)
 
   ;; is there a quicker way to do this?
   (let* ((layer (car (gimp-image-get-active-layer image)))
@@ -25,15 +25,14 @@
          (height (car (gimp-drawable-height layer)))
          (posx (car (gimp-drawable-offsets layer)))
          (posy (cadr (gimp-drawable-offsets layer))))
-      (gimp-rect-select image 
+      (gimp-image-select-rectangle image 
+                        CHANNEL-OP-REPLACE
                         posx 
                         posy 
                         width 
                         height 
-                        0 
-                        FALSE 
-                        0))
+                        ))
 
 
-  (gimp-undo-push-group-end image)
+  (gimp-image-undo-group-end image)
   (gimp-displays-flush))

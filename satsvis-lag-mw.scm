@@ -1,7 +1,7 @@
 (define (make-wonderful inImage inDrawable blurfactor brightness contrast flatten)
   ;; no undo group or display flush
   (let ((new-layer (car (gimp-layer-copy inDrawable 1))))
-    (gimp-image-add-layer inImage  new-layer 0)
+    (gimp-image-insert-layer inImage  new-layer 0 0)
     (plug-in-gauss-iir 1 inImage new-layer blurfactor 1 1)
     (gimp-brightness-contrast new-layer brightness contrast)
     (let ((layer-mask (car (gimp-layer-create-mask inDrawable WHITE-MASK))))
@@ -9,7 +9,7 @@
       (gimp-edit-copy new-layer)
       (gimp-floating-sel-anchor (car (gimp-edit-paste layer-mask 0)))
       (gimp-layer-set-mode new-layer ADDITION))
-    (gimp-layer-set-name new-layer "Vedunderleg"))
+    (gimp-item-set-name new-layer "Vedunderleg"))
   (if (= flatten TRUE)
       (gimp-image-flatten inImage)))
 
@@ -31,7 +31,7 @@
 			       " med modus " (symbol->string mode-symbol)
 			       " og dekkevne " (number->string opacity)))
   (let* ((newlayer (car (gimp-file-load-layer RUN-NONINTERACTIVE image filename))))
-    (gimp-image-add-layer image newlayer -1)
+    (gimp-image-insert-layer image newlayer 0 -1)
     (layer-cover-image1 image newlayer)
     (gimp-layer-set-mode newlayer (eval mode-symbol))
     (gimp-layer-set-opacity newlayer opacity)))
@@ -70,7 +70,7 @@ sidan me skriv det ut."
                                          filename filename)))
              (drawable (car (gimp-image-get-active-layer image))))
 	(gimp-message (string-append "Innbilete: " filename))
-        (gimp-layer-set-name drawable (basename filename)) ; alltid nyttig
+        (gimp-item-set-name drawable (basename filename)) ; alltid nyttig
 	
 	(map (lambda (l)
 	       (layer-load-add-cover image (first l) (second l) (third l)))
@@ -82,7 +82,7 @@ sidan me skriv det ut."
 			blurfactor brightness contrast
 			FALSE)		; ikkje noko flatten
         (set! drawable (car (gimp-image-get-active-layer image)))
-	(gimp-layer-set-opacity drawable 10) ; vedunderleg-laget til 10%
+	(gimp-layer-set-opacity drawable 15) ; vedunderleg-laget til 15%
 
 	(let ((xcfname (string-append (basename filename) ".xcf"))
 	      (jpgname (string-append (basename filename) ".xcf.jpg")))

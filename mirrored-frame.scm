@@ -63,7 +63,7 @@
 			in-height-rel
 			out-width-rel
 			out-height-rel)
-  (gimp-undo-push-group-start image)
+  (gimp-image-undo-group-start image)
   
   (let* ((new-width (/ (* out-width-rel
 			  (car (gimp-image-width image)))
@@ -144,6 +144,6 @@
 			   (car (gimp-image-width image)) new-height 
 			   0                              y-offset))))
   
-  (gimp-undo-push-group-end image)
+  (gimp-image-undo-group-end image)
   (gimp-displays-flush))
 

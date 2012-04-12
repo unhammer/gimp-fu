@@ -15,7 +15,7 @@ as the canvas (image)"
 
 (define (layer-cover-image image drawable)
 
-  (gimp-undo-push-group-start image)
+  (gimp-image-undo-group-start image)
 
   (let* ((width (car (gimp-image-width image)))
          (height (car (gimp-image-height image))))
@@ -29,6 +29,6 @@ as the canvas (image)"
 			  0
 			  0)
 
-  (gimp-undo-push-group-end image)
+  (gimp-image-undo-group-end image)
   (gimp-displays-flush)
   )
