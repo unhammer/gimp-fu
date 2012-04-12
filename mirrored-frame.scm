@@ -83,15 +83,31 @@
 					   FALSE
 					   0.0
 					   FALSE)
-      (let ((right (car (gimp-layer-copy left FALSE))))
-	(gimp-drawable-set-name right "right mirror")
+      ;; drop unneccessary image data:
+      (gimp-layer-resize left
+      			 x-offset
+			 (car (gimp-drawable-height left))
+       			 (- x-offset (car (gimp-drawable-width left)))
+			 0)
+      (let ((right (car (gimp-layer-new-from-visible image image "right mirror"))))
 	(gimp-image-add-layer image right -1)
+	(gimp-drawable-transform-flip-simple right
+					   ORIENTATION-HORIZONTAL
+					   FALSE
+					   0.0
+					   FALSE)
 	(gimp-layer-set-offsets right
 				(car (gimp-image-width image))
 				0)
-	(gimp-image-resize image
-			   new-width (car (gimp-image-height image)) 
-			   x-offset  0)))
+      ;; drop unneccessary image data:
+      (gimp-layer-resize right
+      			 x-offset
+			 (car (gimp-drawable-height right))
+       			 (- x-offset (car (gimp-drawable-width left))) ; TODO left???
+			 0)
+      (gimp-image-resize image
+			 new-width (car (gimp-image-height image)) 
+			 x-offset  0)))
     ;; again we use new-from-visible; since we resized at the end of
     ;; the previous step we get a mirror of the mirror in the outside
     ;; corners:
@@ -102,12 +118,28 @@
 					   FALSE
 					   0.0
 					   FALSE)
-      (let ((bottom (car (gimp-layer-copy top FALSE))))
-	(gimp-drawable-set-name bottom "bottom mirror")
+      ;; drop unneccessary image data:
+      (gimp-layer-resize top
+			 (car (gimp-drawable-width top))
+			 y-offset
+			 0
+       			 (- y-offset (car (gimp-drawable-height top))))
+      (let ((bottom (car (gimp-layer-new-from-visible image image "bottom mirror"))))
 	(gimp-image-add-layer image bottom -1)
+	(gimp-drawable-transform-flip-simple bottom
+					     ORIENTATION-VERTICAL
+					     FALSE
+					     0.0
+					     FALSE)
 	(gimp-layer-set-offsets bottom
 				0
 				(car (gimp-image-height image)))
+	;; drop unneccessary image data:
+	(gimp-layer-resize bottom
+			 (car (gimp-drawable-width bottom))
+			 y-offset
+			 0
+       			 (- y-offset (car (gimp-drawable-height top))))
 	(gimp-image-resize image
 			   (car (gimp-image-width image)) new-height 
 			   0                              y-offset))))
