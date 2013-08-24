@@ -1,7 +1,29 @@
 ;; -*- mode: Gimp; -*-
 
-;;; Assumes my-curves is defined somewhere (in some other file)
-;;; like this:
+;;; Usage:
+
+;; $ gimp -d -f -i -b "(begin $defcurves (satsvis-curves $opacity \"*.[jJ][pP][gG]\"))" -b '(gimp-quit 0)'
+
+;;; where 0<opacity<100, and you've read a gimp curve file into
+;;; $defcurves with e.g.
+
+;; $ defcurves=$(< ~/.gimp-2.8/curves/KodakPortra awk  '
+;;     BEGIN{
+;;         print "(define (my-curves)\n  (quote ("
+;;     }
+;;     /^[0-9 -]+$/{print "    ("$0")"} # simple curve file format
+;;     /^ *\(points [0-9 .-]+\) *$/ {   # GIMP curve settings format
+;;         printf "    ("
+;;         for(i=3;i<=NF;i++) {
+;;             sub(/\)/,"",$i)
+;;             if($i ~ /^-/) printf "" # "-1 "
+;;             else printf "%d ", $i*255
+;;         }
+;;         print ")"
+;;     }
+;;     END{print ")))"}')
+
+;;; This will make "$defcurves" contain something like:
 ;; (define (my-curves)
 ;;   '((0 0 128 118 221 215  -1  -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 255 255)
 ;;     (0 0  41  28 183 209  -1  -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 255 255)
@@ -45,12 +67,11 @@
 		  (viscopy (car (gimp-layer-new-from-visible image image
 							     "copy of visible"))))
 	     (gimp-message (string-append "Innbilete: " filename))
-	     (gimp-item-set-name drawable (basename filename)) ; alltid nyttig
+	     (gimp-item-set-name drawable (basename filename))
 	     (gimp-item-set-name viscopy "copy with curve")
 
 	     (gimp-image-insert-layer image viscopy 0 -1)
 	     (gimp-layer-set-opacity viscopy opacity)
-	     ;; TODO: how to load curve from file? This is pretty much copy-pasted in:
 
 	     (apply-curves viscopy (my-curves))
 
