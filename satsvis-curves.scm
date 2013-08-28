@@ -2,7 +2,7 @@
 
 ;;; Usage:
 
-;; $ gimp -d -f -i -b "(begin $defcurves (satsvis-curves $opacity \"*.[jJ][pP][gG]\"))" -b '(gimp-quit 0)'
+;; $ gimp -d -f -i -b "(begin $defcurves (kbu-satsvis-curves $opacity \"*.[jJ][pP][gG]\"))" -b '(gimp-quit 0)'
 
 ;;; where 0<opacity<100, and you've read a gimp curve file into
 ;;; $defcurves with e.g.
@@ -32,7 +32,7 @@
 ;;     (0 0 -1   -1  -1  -1  -1  -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 255 255))
 ;;   )
 
-(define (apply-curves drawable curves)
+(define (kbu-apply-curves drawable curves)
   (map (lambda (channel)
 	 (gimp-curves-spline drawable
 			     channel
@@ -42,59 +42,85 @@
 	   (list HISTOGRAM-VALUE HISTOGRAM-RED HISTOGRAM-GREEN HISTOGRAM-BLUE)
 	   (list HISTOGRAM-VALUE HISTOGRAM-RED HISTOGRAM-GREEN HISTOGRAM-BLUE HISTOGRAM-ALPHA))))
 
-(define (find-eqv elt list)
+(define (kbu-find-eqv elt list)
   (if (pair? list)
       (if (eqv? elt (car list))
 	  0
-	  (let ((ret (find-eqv elt (cdr list))))
+	  (let ((ret (kbu-find-eqv elt (cdr list))))
 	    (if (number? ret) (+ 1 ret) '())))))
-(define (basename filename)
-  (let* ((slash-pos (find-eqv #\/ (reverse (string->list filename))))
+
+(define (kbu-basename filename)
+  (let* ((slash-pos (kbu-find-eqv #\/ (reverse (string->list filename))))
 	 (last-slash
 	  (if (number? slash-pos)
 	      (- (string-length filename) slash-pos)
 	      0)))
     (substring filename last-slash (string-length filename))))
 
-(define (satsvis-curves opacity fpattern)
-  "fpattern er ein file-glob, t.d. \"*.jpg\"."
-  (let* ((filelist (cadr (file-glob fpattern 1))))
-    (while (not (null? filelist))
-	   (let* ((filename (car filelist))
-		  (image (car (gimp-file-load RUN-NONINTERACTIVE
-					      filename filename)))
-		  (drawable (car (gimp-image-get-active-layer image)))
-		  (viscopy (car (gimp-layer-new-from-visible image image
-							     "copy of visible"))))
-	     (gimp-message (string-append "Innbilete: " filename))
-	     (gimp-item-set-name drawable (basename filename))
-	     (gimp-item-set-name viscopy "copy with curve")
+(define (kbu-curve-an-image opacity-curves image filename)
+  (let* ((drawable (car (gimp-image-get-active-layer image)))
+         ;; viscopy is not used in the image, only as a template when
+         ;; creating the curve layers, since we don't want the second
+         ;; curve to be based on what's visible after applying the
+         ;; first
+         (viscopy (car (gimp-layer-new-from-visible image image "copy of visible"))))
 
-	     (gimp-image-insert-layer image viscopy 0 -1)
-	     (gimp-layer-set-opacity viscopy opacity)
+    ;; TODO: this should only happen if not xcf, no?
+    ;; (gimp-item-set-name drawable (kbu-basename filename))
 
-	     (apply-curves viscopy (my-curves))
+    (map (lambda (op-cu)
+           (let ((layer (car (gimp-layer-copy viscopy FALSE)))
+                 (opacity (car op-cu))
+                 (curves (cdr op-cu)))
+             (gimp-item-set-name layer "copy with curve")
+             (gimp-image-insert-layer image layer 0 -1)
+             (gimp-layer-set-opacity layer opacity)
+             (kbu-apply-curves layer curves)))
+         opacity-curves)))
 
-	     (let ((jpgname (string-append (basename filename) ".curved.jpg")))
-	       (gimp-image-flatten image)
-	       (set! drawable (car (gimp-image-get-active-layer image)))
-	       (gimp-message (string-append "Lagrar som " jpgname " ..."))
-	       (file-jpeg-save RUN-NONINTERACTIVE
-			       image
-			       drawable
-			       jpgname
-			       jpgname
-			       1 ; kvalitet
-			       0 ; utjamning
-			       1 ; optimaliser
-			       0 ; progressiv
-			       "Created with GIMP by ~T~"
-			       3 ; subsmp, 3 is best quality (?)
-			       1 ; force baseline
-			       0 ; restart markers
-			       0 ; dct slow
-			       ))
+(define (kbu-save-export image filename)
+  (let ((drawable (car (gimp-image-get-active-layer image)))
+        (xcfname (string-append (kbu-basename filename) ".curved.xcf"))
+        (jpgname (string-append (kbu-basename filename) ".curved.xcf.jpg")))
+    (gimp-message (string-append "Lagrar som " xcfname " ..."))
+    (gimp-xcf-save RUN-NONINTERACTIVE
+                   image
+                   drawable
+                   xcfname
+                   xcfname)
+    (gimp-image-flatten image)
+    (set! drawable (car (gimp-image-get-active-layer image)))
+    (gimp-message (string-append "Lagrar som " jpgname " ..."))
+    (file-jpeg-save RUN-NONINTERACTIVE
+                    image
+                    drawable
+                    jpgname
+                    jpgname
+                    1		; kvalitet
+                    0		; utjamning
+                    1		; optimaliser
+                    0		; progressiv
+                    "Created with GIMP by ~T~"
+                    3		; subsmp, 3 is best quality (?)
+                    1		; force baseline
+                    0		; restart markers
+                    0		; dct slow
+                    )))
 
-	     (gimp-image-delete image))
-	   (set! filelist (cdr filelist))))
+(define (kbu-satsvis-curves opacity-curves globs)
+  "fpatterns is a list of file-globs, e.g. '(\"*.jpg\" \"*.[xX][cC][fF]\"),
+opacity-curves is a list of pairs of opacity-values and curve specs,
+e.g. '((40 . (…)) (60 . (…))) where the … is as described in the top
+of this file."
+  (let* ((filelist (apply append (map (lambda (glob)
+                                        (cadr (file-glob glob 1)))
+                                      globs))))
+    (map (lambda (filename)
+           (gimp-message (string-append "Innbilete: " filename))
+           (let ((image (car (gimp-file-load RUN-NONINTERACTIVE
+                                             filename filename))))
+             (kbu-curve-an-image opacity-curves image filename)
+             (kbu-save-export image filename)
+             (gimp-image-delete image)))
+         filelist))
   (gimp-message "Ferdig med alle bileta!"))
