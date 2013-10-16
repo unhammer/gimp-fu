@@ -68,11 +68,12 @@
     ;; TODO: this should only happen if not xcf, no?
     ;; (gimp-item-set-name drawable (kbu-basename filename))
 
-    (map (lambda (op-cu)
+    (map (lambda (na-op-cu)
            (let ((layer (car (gimp-layer-copy viscopy FALSE)))
-                 (opacity (car op-cu))
-                 (curves (cdr op-cu)))
-             (gimp-item-set-name layer "copy with curve")
+                 (name     (car na-op-cu))
+                 (opacity (cadr na-op-cu))
+                 (curves (caddr na-op-cu)))
+             (gimp-item-set-name layer name)
              (gimp-image-insert-layer image layer 0 -1)
              (gimp-layer-set-opacity layer opacity)
              (kbu-apply-curves layer curves)))
@@ -108,9 +109,9 @@
                     )))
 
 (define (kbu-satsvis-curves opacity-curves globs)
-  "fpatterns is a list of file-globs, e.g. '(\"*.jpg\" \"*.[xX][cC][fF]\"),
-opacity-curves is a list of pairs of opacity-values and curve specs,
-e.g. '((40 . (…)) (60 . (…))) where the … is as described in the top
+  "globs is a list of file-globs, e.g. '(\"*.jpg\" \"*.[xX][cC][fF]\"),
+opacity-curves is a list of lists of layer-name, opacity-values and curve specs,
+e.g. '((\"velvia\" 40 (…)) (\"portra\" 60 (…))) where the … is as described in the top
 of this file."
   (let* ((filelist (apply append (map (lambda (glob)
                                         (cadr (file-glob glob 1)))
