@@ -7,6 +7,13 @@ import sys
 
 export_width = 1600
 
+subdirs = {
+    "cbig": "farge",
+    "cnet": "farge_til_nettbruk",
+    "bwbig": "svarthvitt",
+    "bwnet": "svarthvitt_til_nettbruk",
+}
+
 def python_export_bw_scaled_jpeg(img, base, origdir, subdir):
     subdir_full = os.path.join(origdir,subdir)
     if not os.path.isdir(subdir_full):
@@ -14,32 +21,27 @@ def python_export_bw_scaled_jpeg(img, base, origdir, subdir):
     jpgname = os.path.join(subdir_full, base+".jpg")
     print >>sys.stderr, jpgname
     img.flatten()
-    # File might exist already:
-    dosave = True
-    if os.path.exists(jpgname):
-        dosave = python_export_bw_scaled_overwrite_question(jpgname)
-    if dosave:
-        pdb.file_jpeg_save(img,
-                           pdb.gimp_image_get_active_layer(img),
-                           jpgname,
-                           jpgname,
-                           1,		# kvalitet
-                           0,		# utjamning
-                           1,		# optimaliser
-                           0,		# progressiv
-                           "Created with GIMP by ~T~",
-                           3,		# subsmp, 3 is best quality (?)
-                           1,		# force baseline
-                           0,		# restart markers
-                           0,		# dct slow
-        )
-    pdb.gimp_image_delete(img)
+    pdb.file_jpeg_save(img,
+                       pdb.gimp_image_get_active_layer(img),
+                       jpgname,
+                       jpgname,
+                       1,		# kvalitet
+                       0,		# utjamning
+                       1,		# optimaliser
+                       0,		# progressiv
+                       "Created with GIMP by ~T~",
+                       3,		# subsmp, 3 is best quality (?)
+                       1,		# force baseline
+                       0,		# restart markers
+                       0,		# dct slow
+    )
 
 def python_export_bw_scaled_overwrite_question(filename):
+    global subdirs
     md = gtk.MessageDialog(flags = gtk.DIALOG_DESTROY_WITH_PARENT,
                            type = gtk.MESSAGE_WARNING,
                            buttons = gtk.BUTTONS_YES_NO,
-                           message_format = "File %s already exists, overwrite?" %(filename,))
+                           message_format = "File %s already exists!\nOverwrite all with this file name in %s?" %(filename, ", ".join(subdirs.values())))
     answer = md.run()
     md.destroy()
     return answer == gtk.RESPONSE_YES
@@ -55,15 +57,15 @@ def python_export_bw_scaled_make_bw(img):
         # Kodak Tri-X presets:
         0.25, 0.35, 0.40, 0.25, 0.35, 0.40, 0.25, 0.35, 0.40)
 
-def python_export_bw_scaled(img, drawable) :
-    global export_width
-    new_width = min(img.width, export_width)
-    new_height = img.height * new_width / img.width
+def python_export_bw_scaled(oimg, drawable) :
+    global export_width, subdirs
+    new_width = min(oimg.width, export_width)
+    new_height = oimg.height * new_width / oimg.width
 
-    origdir = os.path.dirname(img.filename)
-    base, ext = os.path.splitext(os.path.basename(img.filename))
+    origdir = os.path.dirname(oimg.filename)
+    base, ext = os.path.splitext(os.path.basename(oimg.filename))
 
-    if not any([l.name == 'vm' for l in img.layers]):
+    if not any([l.name == 'vm' for l in oimg.layers]):
         md = gtk.MessageDialog(flags = gtk.DIALOG_DESTROY_WITH_PARENT,
                                type = gtk.MESSAGE_WARNING,
                                buttons = gtk.BUTTONS_CLOSE,
@@ -72,37 +74,42 @@ def python_export_bw_scaled(img, drawable) :
         md.destroy()
         raise gimp.error("No layer named 'vm'!")
 
+    for jpgname in [os.path.join(origdir,subdir,base+".jpg")
+                    for subdir in subdirs.values()]:
+        if os.path.exists(jpgname):
+            if python_export_bw_scaled_overwrite_question(jpgname):
+                break
+            else:
+                return
+
     # farge, full storleik, utan vassmerke
-    tmp = img.duplicate()
-    for l in tmp.layers:
+    bigimg = oimg.duplicate()
+    for l in bigimg.layers:
         if l.name == 'vm':
             l.visible = False
-    python_export_bw_scaled_jpeg(tmp, base, origdir, "farge")
-
-    # farge, skalert ned, med vassmerke
-    tmp = img.duplicate()
-    pdb.gimp_image_scale(tmp, new_width, new_height)
-    for l in tmp.layers:
-        if l.name == 'vm':
-            l.visible = True
-    python_export_bw_scaled_jpeg(tmp, base, origdir, "farge_til_nettbruk")
+    python_export_bw_scaled_jpeg(bigimg, base, origdir, subdirs["cbig"])
 
     # svartkvitt, full storleik, utan vassmerke
-    tmp = img.duplicate()
-    python_export_bw_scaled_make_bw(tmp)
-    for l in tmp.layers:
-        if l.name == 'vm':
-            l.visible = False
-    python_export_bw_scaled_jpeg(tmp, base, origdir, "svarthvitt")
+    python_export_bw_scaled_make_bw(bigimg) # flattens!
+    python_export_bw_scaled_jpeg(bigimg, base, origdir, subdirs["bwbig"])
 
-    # svartkvitt, skalert ned, med vassmerke
-    tmp = img.duplicate()
-    python_export_bw_scaled_make_bw(tmp)
-    pdb.gimp_image_scale(tmp, new_width, new_height)
-    for l in tmp.layers:
+    pdb.gimp_image_delete(bigimg)
+
+
+    # farge, skalert ned, med vassmerke
+    netimg = oimg.duplicate()
+    pdb.gimp_image_scale(netimg, new_width, new_height)
+    for l in netimg.layers:
         if l.name == 'vm':
             l.visible = True
-    python_export_bw_scaled_jpeg(tmp, base, origdir, "svarthvitt_til_nettbruk")
+    python_export_bw_scaled_jpeg(netimg, base, origdir, subdirs["cnet"])
+
+    # svartkvitt, skalert ned, med vassmerke
+    python_export_bw_scaled_make_bw(netimg) # flattens!
+    python_export_bw_scaled_jpeg(netimg, base, origdir, subdirs["bwnet"])
+
+    pdb.gimp_image_delete(netimg)
+
 
 
 
