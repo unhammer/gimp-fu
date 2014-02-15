@@ -14,22 +14,35 @@ def python_export_bw_scaled_jpeg(img, base, origdir, subdir):
     jpgname = os.path.join(subdir_full, base+".jpg")
     print >>sys.stderr, jpgname
     img.flatten()
-    pdb.file_jpeg_save( # RUN-NONINTERACTIVE
-        img,
-        pdb.gimp_image_get_active_layer(img),
-        jpgname,
-        jpgname,
-        1,		# kvalitet
-        0,		# utjamning
-        1,		# optimaliser
-        0,		# progressiv
-        "Created with GIMP by ~T~",
-        3,		# subsmp, 3 is best quality (?)
-        1,		# force baseline
-        0,		# restart markers
-        0,		# dct slow
-    )
+    # File might exist already:
+    dosave = True
+    if os.path.exists(jpgname):
+        dosave = python_export_bw_scaled_overwrite_question(jpgname)
+    if dosave:
+        pdb.file_jpeg_save(img,
+                           pdb.gimp_image_get_active_layer(img),
+                           jpgname,
+                           jpgname,
+                           1,		# kvalitet
+                           0,		# utjamning
+                           1,		# optimaliser
+                           0,		# progressiv
+                           "Created with GIMP by ~T~",
+                           3,		# subsmp, 3 is best quality (?)
+                           1,		# force baseline
+                           0,		# restart markers
+                           0,		# dct slow
+        )
     pdb.gimp_image_delete(img)
+
+def python_export_bw_scaled_overwrite_question(filename):
+    md = gtk.MessageDialog(flags = gtk.DIALOG_DESTROY_WITH_PARENT,
+                           type = gtk.MESSAGE_WARNING,
+                           buttons = gtk.BUTTONS_YES_NO,
+                           message_format = "File %s already exists, overwrite?" %(filename,))
+    answer = md.run()
+    md.destroy()
+    return answer == gtk.RESPONSE_YES
 
 def python_export_bw_scaled(img, drawable) :
     global export_width
@@ -40,11 +53,10 @@ def python_export_bw_scaled(img, drawable) :
     base, ext = os.path.splitext(os.path.basename(img.filename))
 
     if not any([l.name == 'vm' for l in img.layers]):
-        md = gtk.MessageDialog(None,
-                               gtk.DIALOG_DESTROY_WITH_PARENT,
-                               gtk.MESSAGE_WARNING,
-                               gtk.BUTTONS_CLOSE,
-                               "No layer named 'vm'! Make one and try again :-)")
+        md = gtk.MessageDialog(flags = gtk.DIALOG_DESTROY_WITH_PARENT,
+                               type = gtk.MESSAGE_WARNING,
+                               buttons = gtk.BUTTONS_CLOSE,
+                               message_format = "No layer named 'vm'! Make one and try again :-)")
         md.run()
         md.destroy()
         raise gimp.error("No layer named 'vm'!")
