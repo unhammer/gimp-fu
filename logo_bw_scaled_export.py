@@ -44,6 +44,17 @@ def python_export_bw_scaled_overwrite_question(filename):
     md.destroy()
     return answer == gtk.RESPONSE_YES
 
+def python_export_bw_scaled_make_bw(img):
+    img.flatten()
+    drawable = pdb.gimp_image_get_active_layer(img)
+    pdb.plug_in_colors_channel_mixer(
+        img,
+        drawable,
+        True, # Monochrome
+        # /usr/share/gimp/2.0/scripts/BW-Film-Simulation-1.1.scm 
+        # Kodak Tri-X presets:
+        0.25, 0.35, 0.40, 0.25, 0.35, 0.40, 0.25, 0.35, 0.40)
+
 def python_export_bw_scaled(img, drawable) :
     global export_width
     new_width = min(img.width, export_width)
@@ -78,9 +89,7 @@ def python_export_bw_scaled(img, drawable) :
 
     # svartkvitt, full storleik, utan vassmerke
     tmp = img.duplicate()
-    tmp.flatten()
-    pdb.gimp_desaturate_full(pdb.gimp_image_get_active_layer(tmp),
-                             DESATURATE_LUMINOSITY)
+    python_export_bw_scaled_make_bw(tmp)
     for l in tmp.layers:
         if l.name == 'vm':
             l.visible = False
@@ -88,9 +97,7 @@ def python_export_bw_scaled(img, drawable) :
 
     # svartkvitt, skalert ned, med vassmerke
     tmp = img.duplicate()
-    tmp.flatten()
-    pdb.gimp_desaturate_full(pdb.gimp_image_get_active_layer(tmp),
-                             DESATURATE_LUMINOSITY)
+    python_export_bw_scaled_make_bw(tmp)
     pdb.gimp_image_scale(tmp, new_width, new_height)
     for l in tmp.layers:
         if l.name == 'vm':
