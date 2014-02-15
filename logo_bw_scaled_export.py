@@ -1,7 +1,9 @@
-    #!/usr/bin/env python
+ #!/usr/bin/env python
 
 from gimpfu import *
-import os, sys
+import gtk
+import os
+import sys
 
 export_width = 1600
 
@@ -27,37 +29,61 @@ def python_export_bw_scaled_jpeg(img, base, origdir, subdir):
         0,		# restart markers
         0,		# dct slow
     )
-    pdb.gimp_image_delete(tmp)
+    pdb.gimp_image_delete(img)
 
 def python_export_bw_scaled(img, drawable) :
     global export_width
-    export_height = img.height * export_width / img.width
+    new_width = min(img.width, export_width)
+    new_height = img.height * new_width / img.width
 
     origdir = os.path.dirname(img.filename)
     base, ext = os.path.splitext(os.path.basename(img.filename))
 
     if not any([l.name == 'vm' for l in img.layers]):
-        # Will this show to the user? TODO
+        md = gtk.MessageDialog(None,
+                               gtk.DIALOG_DESTROY_WITH_PARENT,
+                               gtk.MESSAGE_WARNING,
+                               gtk.BUTTONS_CLOSE,
+                               "No layer named 'vm'! Make one and try again :-)")
+        md.run()
+        md.destroy()
         raise gimp.error("No layer named 'vm'!")
 
+    # farge, full storleik, utan vassmerke
     tmp = img.duplicate()
     for l in tmp.layers:
         if l.name == 'vm':
             l.visible = False
     python_export_bw_scaled_jpeg(tmp, base, origdir, "farge")
 
+    # farge, skalert ned, med vassmerke
     tmp = img.duplicate()
-    pdb.gimp_image_scale(tmp, export_width, export_height)
+    pdb.gimp_image_scale(tmp, new_width, new_height)
+    for l in tmp.layers:
+        if l.name == 'vm':
+            l.visible = True
+    python_export_bw_scaled_jpeg(tmp, base, origdir, "farge_til_nettbruk")
+
+    # svartkvitt, full storleik, utan vassmerke
+    tmp = img.duplicate()
+    tmp.flatten()
+    pdb.gimp_desaturate_full(pdb.gimp_image_get_active_layer(tmp),
+                             DESATURATE_LUMINOSITY)
     for l in tmp.layers:
         if l.name == 'vm':
             l.visible = False
+    python_export_bw_scaled_jpeg(tmp, base, origdir, "svarthvitt")
 
-
-    python_export_bw_scaled_jpeg(tmp, base, origdir, "farge_til_nettbruk")
-
-    # TODO the other four
-    # tmp = img.duplicate()
-    # tmp.flatten()
+    # svartkvitt, skalert ned, med vassmerke
+    tmp = img.duplicate()
+    tmp.flatten()
+    pdb.gimp_desaturate_full(pdb.gimp_image_get_active_layer(tmp),
+                             DESATURATE_LUMINOSITY)
+    pdb.gimp_image_scale(tmp, new_width, new_height)
+    for l in tmp.layers:
+        if l.name == 'vm':
+            l.visible = True
+    python_export_bw_scaled_jpeg(tmp, base, origdir, "svarthvitt_til_nettbruk")
 
 
 
@@ -81,4 +107,3 @@ register(
 )
 
 main()
-
