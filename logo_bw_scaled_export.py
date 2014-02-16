@@ -9,19 +9,19 @@ export_width = 1600
 
 subdirs = {
     "c": {
-        "big": "farge",
-        "net": "farge_til_nettbruk",
+        "big": "farve",
+        "net": "farve/til_internettbruk",
     },
     "bw": {
         "big": "svarthvitt",
-        "net": "svarthvitt_til_nettbruk",
+        "net": "svarthvitt/til_internettbruk",
     },
 }
 
 def python_wmscaled_jpeg(img, base, origdir, subdir):
     subdir_full = os.path.join(origdir,subdir)
     if not os.path.isdir(subdir_full):
-        os.mkdir(subdir_full)
+        os.makedirs(subdir_full)
     jpgname = os.path.join(subdir_full, base+".jpg")
     print >>sys.stderr, jpgname
     img.flatten()
