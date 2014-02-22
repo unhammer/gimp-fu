@@ -125,3 +125,56 @@ of this file."
              (gimp-image-delete image)))
          filelist))
   (gimp-message "Ferdig med alle bileta!"))
+
+
+(define (kbu-layer-cover-image1 image drawable)
+  ;; no undo group or display flush
+  (let* ((width (car (gimp-image-width image)))
+         (height (car (gimp-image-height image))))
+    (gimp-layer-scale
+     drawable
+     width
+     height
+     1))
+  (gimp-layer-set-offsets drawable
+			  0
+			  0))
+(define (kbu-layer-load-add-cover image filename mode-symbol opacity)
+  (gimp-message (string-append "Prøver å leggja til " filename
+			       " med modus " (symbol->string mode-symbol)
+			       " og dekkevne " (number->string opacity)))
+  (let* ((newlayer (car (gimp-file-load-layer RUN-NONINTERACTIVE image filename))))
+    (gimp-image-insert-layer image newlayer 0 -1)
+    (kbu-layer-cover-image1 image newlayer)
+    (gimp-layer-set-mode newlayer (eval mode-symbol))
+    (gimp-layer-set-opacity newlayer opacity)))
+
+(define (kbu-satsvis-textures-curves textures opacity-curves globs)
+  "globs is a list of file-globs, e.g. '(\"*.jpg\" \"*.[xX][cC][fF]\"),
+
+opacity-curves is a list of lists of layer-name, opacity-values and curve specs,
+e.g. '((\"velvia\" 40 (…)) (\"portra\" 60 (…))) where the … is as described in the top
+of this file.
+
+textures er ei liste der kvart element er ei liste
+med (filnamn modus-symbol dekkevne), modus må vera sitert
+sidan me skriv det ut."
+  (let* ((filelist (apply append (map (lambda (glob)
+                                        (cadr (file-glob glob 1)))
+                                      globs))))
+    (map (lambda (filename)
+           (gimp-message (string-append "Innbilete: " filename))
+           (let ((image (car (gimp-file-load RUN-NONINTERACTIVE
+                                             filename filename))))
+
+             (kbu-curve-an-image opacity-curves image filename)
+
+	     (map (lambda (l)
+		    (kbu-layer-load-add-cover image (car l) (cadr l) (caddr l)))
+		  textures)
+	     (gimp-message "Alle lag er lagt til!")
+
+             (kbu-save-export image filename)
+             (gimp-image-delete image)))
+         filelist))
+  (gimp-message "Ferdig med alle bileta!"))

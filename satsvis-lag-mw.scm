@@ -20,14 +20,14 @@
     (gimp-layer-scale
      drawable
      width
-     height   
-     1))    
-  (gimp-layer-set-offsets drawable 
+     height
+     1))
+  (gimp-layer-set-offsets drawable
 			  0
 			  0))
 
 (define (layer-load-add-cover image filename mode-symbol opacity)
-  (gimp-message (string-append "Prøver å leggje til " filename
+  (gimp-message (string-append "Prøver å leggja til " filename
 			       " med modus " (symbol->string mode-symbol)
 			       " og dekkevne " (number->string opacity)))
   (let* ((newlayer (car (gimp-file-load-layer RUN-NONINTERACTIVE image filename))))
@@ -58,10 +58,10 @@
 (define (satsvis-lag-mw fpattern
 			blurfactor brightness contrast
 			layers)
-  "fpattern er ein file-glob, t.d. \"*.jpg\". 
+  "fpattern er ein file-glob, t.d. \"*.jpg\".
 Dei tri neste argumenta går til make-wonderful.
-layers er ei liste der kvart element er ei liste 
-med (filnamn modus-symbol dekkevne), modus må vere sitert 
+layers er ei liste der kvart element er ei liste
+med (filnamn modus-symbol dekkevne), modus må vera sitert
 sidan me skriv det ut."
   (let* ((filelist (cadr (file-glob fpattern 1))))
     (while (not (null? filelist))
@@ -71,12 +71,12 @@ sidan me skriv det ut."
              (drawable (car (gimp-image-get-active-layer image))))
 	(gimp-message (string-append "Innbilete: " filename))
         (gimp-item-set-name drawable (basename filename)) ; alltid nyttig
-	
+
 	(map (lambda (l)
 	       (layer-load-add-cover image (first l) (second l) (third l)))
 	     layers)
 	(gimp-message "Alle lag er lagt til!")
-	
+
 	(gimp-message (string-append "Prøver å gjere " filename " vedunderleg..."))
 	(make-wonderful image drawable
 			blurfactor brightness contrast
@@ -113,6 +113,5 @@ sidan me skriv det ut."
 
         (gimp-image-delete image))
       (set! filelist (cdr filelist))))
-  
-  (gimp-message "Ferdig med alle bilete!"))
 
+  (gimp-message "Ferdig med alle bilete!"))
